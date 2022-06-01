@@ -1,8 +1,13 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
+import * as React from 'react';
+import * as ReactDOM from 'react-dom/client';
 import './index.css';
 
-function Square(props) {
+type SquareProps = {
+  value: number;
+  onClick: () => void;
+}
+
+function Square(props: SquareProps) {
   return (
     <button className="square" onClick={props.onClick}>
       {props.value}
@@ -10,14 +15,17 @@ function Square(props) {
   );
 }
 
+type BoardProps = {
+  squares: number[];
+  onClick: (i: number) => void;
+}
 
-class Board extends React.Component {
+class Board extends React.Component<BoardProps> {
   renderSquare(i) {
     return <Square value={this.props.squares[i]} onClick={() => this.props.onClick(i)} />;
   }
 
   render() {
-
     return (
       <div>
         <div className="board-row">
@@ -40,15 +48,22 @@ class Board extends React.Component {
   }
 }
 
-class Game extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      history: [{ squares: Array(9).fill(null), col: null, row: null }],
-      stepNumber: 0,
-      xIsNext: true,
-    }
-  }
+type GameState = {
+  history: {
+    squares: number[],
+    col: number,
+    row: number
+  }[];
+  stepNumber: number;
+  xIsNext: boolean;
+}
+
+class Game extends React.Component<{}, GameState> {
+  state = {
+    history: [{ squares: Array(9).fill(null), col: null, row: null }],
+    stepNumber: 0,
+    xIsNext: true,
+  };
 
   jumpTo(step) {
     this.setState({
@@ -68,7 +83,7 @@ class Game extends React.Component {
     }
     squares[i] = this.state.xIsNext ? 'X' : 'O';
     this.setState({
-      history: history.concat([{squares, col, row}]),
+      history: history.concat([{ squares, col, row }]),
       xIsNext: !this.state.xIsNext,
       stepNumber: history.length,
     });
@@ -85,8 +100,8 @@ class Game extends React.Component {
 
     const moves = history.map((step, move) => {
       let desc = move ?
-        `(${step.row}, ${step.col}) Go to move #${move}` :
-        `Go to start`;
+        <span>{`(${step.row}, ${step.col}) Go to move #${move}`}</span> :
+        <span>{`Go to start`}</span>;
 
       if (move === this.state.stepNumber) {
         desc = <strong>{desc}</strong>;
@@ -104,7 +119,7 @@ class Game extends React.Component {
         <div className="game-board">
           <Board
             squares={current.squares}
-            onClick={(i) => this.handleClick(i)}  />
+            onClick={(i) => this.handleClick(i)} />
         </div>
         <div className="game-info">
           <div>{status}</div>
@@ -117,8 +132,57 @@ class Game extends React.Component {
 
 // ========================================
 
+function TemperatureInput(props: { temperature: number, onTemperatureChange: (e) => void }) {
+  return (
+    <input value={props.temperature} onChange={props.onTemperatureChange} />
+  );
+}
+
+class Calculator extends React.Component<{}, { temperature: number, scale: string }> {
+  state = {
+    temperature: 0,
+    scale: 'c'
+  }
+
+  handleCelsiusChange(e) {
+    this.setState({
+      temperature: +e.target.value,
+      scale: 'c',
+    });
+  }
+
+  handleFahrenheitChange(e) {
+    this.setState({
+      temperature: +e.target.value,
+      scale: 'f',
+    });
+  }
+
+  render() {
+    const celsius = this.state.scale === 'c' ? this.state.temperature : toFahrenheit(this.state.temperature);
+    const fahrenheit = this.state.scale === 'f' ? this.state.temperature : toCelsius(this.state.temperature);
+
+    return (
+      <div>
+        <TemperatureInput temperature={celsius} onTemperatureChange={(e) => this.handleCelsiusChange(e)} />
+        <TemperatureInput temperature={fahrenheit} onTemperatureChange={(e) => this.handleFahrenheitChange(e)} />
+      </div>
+    );
+  }
+}
+
+// ========================================
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<Game />);
+root.render(
+  <div>
+    <Game />
+    <hr />
+    <Calculator />
+  </div>
+);
+
+// ========================================
 
 function calculateWinner(squares) {
   const lines = [
@@ -138,4 +202,12 @@ function calculateWinner(squares) {
     }
   }
   return null;
+}
+
+function toCelsius(fahrenheit) {
+  return (fahrenheit - 32) * 5 / 9;
+}
+
+function toFahrenheit(celsius) {
+  return (celsius * 9 / 5) + 32;
 }
